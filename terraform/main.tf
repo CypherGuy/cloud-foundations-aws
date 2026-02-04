@@ -1,3 +1,9 @@
+variable "your_ip_address" {
+  type    = string
+  default = "YOUR_IP_ADDRESS/32" # Replace YOUR_IP_ADDRESS with your actual IP address
+}
+
+
 provider "aws" {
   region = "eu-west-2"
 }
@@ -19,6 +25,7 @@ resource "aws_instance" "app_server" {
   instance_type          = "t3.micro"             # Free tier chosen
   subnet_id              = aws_subnet.subnet.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+  user_data              = file("userdata.tpl")
 
   key_name = "learn-terraform-key"
 
@@ -59,7 +66,7 @@ resource "aws_route_table" "rtable" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block = "0.0.0.0/0" # This is basically saying "Only send traffic from devices on this CIDr range to the Internet Gateway", in this case all IPv4 addresses
+    cidr_block = "0.0.0.0/0" # This is basically saying "I want to allow all traffic to access the gateway"
     gateway_id = aws_internet_gateway.gw.id
   }
 
@@ -81,13 +88,24 @@ resource "aws_security_group" "app_sg" {
 resource "aws_vpc_security_group_ingress_rule" "ssh" {
   security_group_id = aws_security_group.app_sg.id
 
-  cidr_ipv4   = "0.0.0.0/0"
+  cidr_ipv4   = your_ip_address
   from_port   = 22 # Standard SSH port
   to_port     = 22
   ip_protocol = "tcp"
 
-  description = "Allow SSH from anywhere"
+  description = "Allow SSH from only one IP"
 }
+
+resource "aws_vpc_security_group_ingress_rule" "http" {
+  security_group_id = aws_security_group.app_sg.id
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+
+  description = "Allow HTTP access from anywhere"
+}
+
 
 resource "aws_vpc_security_group_egress_rule" "all_outbound" {
   security_group_id = aws_security_group.app_sg.id
@@ -109,6 +127,7 @@ resource "aws_key_pair" "app_key" { # Creates an SSH key pair so we can connect 
 }
 
 output "public_ip" {
+  value = aws_instance.app_server.public_ip
+
   description = "Public IP of the EC2 instance"
-  value       = aws_instance.app_server.public_ip
 }

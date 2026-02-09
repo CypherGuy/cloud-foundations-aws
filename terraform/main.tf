@@ -1,8 +1,14 @@
-variable "your_ip_address" {
-  type    = string
-  default = "YOUR_IP_ADDRESS/32" # Replace YOUR_IP_ADDRESS with your actual IP address
-}
+# Ensure that before running `terraform apply`, you have set the environment variable `TF_VAR_your_ip_address` to your actual IP address in CIDR notation using `export TF_VAR_your_ip_address="your_ip_address/32"` in the terminal.
 
+variable "your_ip_address" {
+  description = "CIDR block allowed to SSH into the EC2 instance only under listed IP"
+  type        = string
+
+  validation {
+    condition     = can(cidrhost(var.your_ip_address, 0))
+    error_message = "The IP address must be in CIDR notation with /32"
+  }
+}
 
 provider "aws" {
   region = "eu-west-2"
@@ -22,7 +28,7 @@ data "aws_ami" "ubuntu" {
 # This block creates an EC2 instance
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ami.ubuntu.id # Uses the previous AMI
-  instance_type          = "t3.micro"             # Free tier chosen
+  instance_type          = "t3.micro"             # Free tier
   subnet_id              = aws_subnet.subnet.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   user_data              = file("userdata.tpl")
@@ -30,7 +36,7 @@ resource "aws_instance" "app_server" {
   key_name = "learn-terraform-key"
 
   tags = {
-    Name = "learn-terraform" # Good tag?
+    Name = "learn-terraform"
   }
 }
 
@@ -66,7 +72,7 @@ resource "aws_route_table" "rtable" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block = "0.0.0.0/0" # This is basically saying "I want to allow all traffic to access the gateway"
+    cidr_block = "0.0.0.0/0" # Routes all outbound traffic to the internet gateway
     gateway_id = aws_internet_gateway.gw.id
   }
 
@@ -88,7 +94,7 @@ resource "aws_security_group" "app_sg" {
 resource "aws_vpc_security_group_ingress_rule" "ssh" {
   security_group_id = aws_security_group.app_sg.id
 
-  cidr_ipv4   = your_ip_address
+  cidr_ipv4   = var.your_ip_address
   from_port   = 22 # Standard SSH port
   to_port     = 22
   ip_protocol = "tcp"
@@ -116,7 +122,7 @@ resource "aws_vpc_security_group_egress_rule" "all_outbound" {
   description = "Allow all outbound traffic"
 }
 
-resource "aws_route_table_association" "a" { # Link the route table to the subnet
+resource "aws_route_table_association" "subnet_rt_association" { # Link the route table to the subnet
   subnet_id      = aws_subnet.subnet.id
   route_table_id = aws_route_table.rtable.id
 }

@@ -1,4 +1,4 @@
-# AWS Platform Foundations (Terraform)
+# Terraform AWS Environment
 
 A **production‑style AWS environment** built from first principles to demonstrate
 **cloud infrastructure design, networking, security, and immutable provisioning**
@@ -15,10 +15,13 @@ The infrastructure provisions the following resources in **AWS eu-west-2**:
 
 - Custom VPC (`10.0.0.0/16`)
 - Public subnet (`10.0.1.0/24`) in a single Availability Zone
-- Internet Gateway with explicit routing
+- Internet Gateway
+- Security Group with ingress and egress rules on the Internet Gateway
+  - SSH ingress from only one CIDR IP defined as a Terraform variable
+  - HTTP ingress from any source
+  - All outbound traffic
 - Route table with `0.0.0.0/0` outbound access
 - EC2 instance running **Ubuntu 24.04 LTS**
-- Terraform-managed VPC security group and rules
 - SSH access via AWS key pair
 - HTTP access via port 80
 
@@ -52,8 +55,8 @@ This demonstrates **immutable infrastructure principles**:
 changes to server configuration are applied by **replacing the instance**, not by
 manually modifying live systems.
 
-> Any change to `user_data` intentionally requires instance replacement to ensure
-> deterministic, reproducible infrastructure.
+> Changes to user_data are applied by replacing the EC2 instance, meaning you get a clean and reproducible setup each time.
+> Just run `terraform apply -replace="aws_instance.app_server"`, note the flag, and you should be good to go.
 
 ---
 

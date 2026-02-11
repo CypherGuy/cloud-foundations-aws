@@ -16,11 +16,11 @@ The infrastructure provisions the following resources in **AWS eu-west-2**:
 - Custom VPC (`10.0.0.0/16`)
 - Public subnet (`10.0.1.0/24`) in a single Availability Zone
 - Internet Gateway
-- Security Group with ingress and egress rules on the Internet Gateway
+- Security Group with ingress and egress rules attached to the EC2 instance
   - SSH ingress from only one CIDR IP defined as a Terraform variable
   - HTTP ingress from any source
   - All outbound traffic
-- Route table with `0.0.0.0/0` outbound access
+- Route table associated with the Subnet with `0.0.0.0/0` outbound access
 - EC2 instance running **Ubuntu 24.04 LTS**
 - SSH access via AWS key pair
 - HTTP access via port 80
@@ -30,16 +30,14 @@ The infrastructure provisions the following resources in **AWS eu-west-2**:
 ```
 Internet
    │
-Internet Gateway
-   │
-Route Table (0.0.0.0/0)
+Internet Gateway sitting on VPC
    │
 Public Subnet (10.0.1.0/24)
    │
 EC2 Instance (Ubuntu + nginx)
 ```
 
----
+A visual representation is available in Architecture.png. I drew this using [Excalidraw](https://excalidraw.com/).
 
 ## Automated Provisioning (Key Feature)
 
